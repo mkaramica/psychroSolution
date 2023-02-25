@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" type="text/css" href="index.css" />
+  </head>
+  <body>
+    <div class="input-container">
+      <div class="input-row">
+        <label for="temp-input">Ambient Temperature:</label>
+        <input id="temp-input" type="number" step="0.1" value="25" />
+        <select id="temp-units">
+          <option value="C">Celsius</option>
+          <option value="F">Fahrenheit</option>
+          <option value="K">Kelvin</option>
+          <option value="R">Rankine</option>
+        </select>
+        <span class="range-label">&nbsp;Min:&nbsp;</span>
+        <label class="range-tempMin" id="range-tempMin">-100</label>
+        <span class="range-label">&nbsp;Max:&nbsp;</span>
+        <label class="range-tempMax" id="range-tempMax">100</label>
+        <label class="digits-label" for="temp-digits">Digits:</label>
+        <input id="temp-digits" type="number" min="0" max="10" value="3" />
+      </div>
+
+      <div class="pressureContainer">
+        <div class="input-row">
+          <input
+            type="radio"
+            id="pressure-radio"
+            name="alt-pressure"
+            value="pressure"
+          />
+          <label for="pressure-units">Barometric Pressure:</label>
+          <input id="pressure-input" type="number" step="0.1" value="101325" />
+          <select id="pressure-units" name="pressure-units">
+            <option value="Pa">Pa</option>
+            <option value="kPa">kPa</option>
+            <option value="Bar">Bar</option>
+            <option value="mBar">mBar</option>
+            <option value="mm H2O">mm H2O</option>
+            <option value="mm Hg">mm Hg</option>
+            <option value="Atmosphere">Atmosphere</option>
+            <option value="PSI">PSI</option>
+          </select>
+          <span class="range-label">&nbsp;Min:&nbsp;</span>
+          <label class="range-pressureMin" id="range-pressureMin">5000</label>
+          <span class="range-label">&nbsp;Max:&nbsp;</span>
+          <label class="range-pressureMax" id="range-pressureMax"
+            >1000000</label
+          >
+          <label class="digits-label" for="pressure-digits">Digits:</label>
+          <input
+            id="pressure-digits"
+            type="number"
+            min="0"
+            max="10"
+            value="3"
+          />
+        </div>
+
+        <div class="input-row">
+          <input
+            type="radio"
+            id="altitude-radio"
+            name="alt-pressure"
+            value="altitude"
+          />
+          <label for="altitude-radio">Altitude:</label>
+          <input
+            id="altitude-input"
+            type="number"
+            step="0.1"
+            min="-1000"
+            max="50000"
+          />
+          <select id="altitude-units">
+            <option value="m">m</option>
+            <option value="ft">ft</option>
+            <option value="km">km</option>
+            <option value="mile">mile</option>
+          </select>
+          <span class="range-label">&nbsp;Min:&nbsp;</span>
+          <label class="range-altitudeMin" id="range-altitudeMin">-5000</label>
+          <span class="range-label">&nbsp;Max:&nbsp;</span>
+          <label class="range-altitudeMax" id="range-altitudeMax">11000</label>
+          <label class="digits-label" for="altitude-digits">Digits:</label>
+          <input
+            id="altitude-digits"
+            type="number"
+            min="0"
+            max="10"
+            value="3"
+          />
+        </div>
+      </div>
+    </div>
+    <script src="app.js"></script>
+  </body>
+</html>
