@@ -37,9 +37,23 @@ const parameterDictionary = {
         );
         this[key].unitCombo = document.getElementById(key + "-units");
         this[key].inputDigints = document.getElementById(key + "-digits");
+        this[key].inputBox = document.getElementById(key + "-input");
+
+        if (key !== "temp") {
+          this[key].radioButton = document.getElementById(key + "-radio");
+        }
 
         this[key].inputDigints.addEventListener("input", function () {
           updateRanges();
+        });
+
+        this[key].inputBox.addEventListener("input", function () {
+          performInputValidation(this);
+        });
+
+        this[key].unitCombo.addEventListener("change", function () {
+          updateRanges();
+          performInputValidation(this);
         });
       }
     }
@@ -71,11 +85,34 @@ function updateRanges() {
   }
 }
 
+function performInputValidation(callingElement) {
+  const dictKey = callingElement.id.split("-")[0];
+  const inputBox = parameterDictionary[dictKey].inputBox;
+  if (inputBox.readOnly) {
+    return true;
+  }
+  const unitCombo = parameterDictionary[dictKey].unitCombo;
+  const convertingFunc = parameterDictionary[dictKey].convertingFunc;
+  const objRange = parameterDictionary[dictKey].objRange;
+
+  const inputValue = convertingFunc(inputBox.value, unitCombo.value);
+
+  if (
+    inputBox.value === "" ||
+    isNaN(inputBox.value) ||
+    !objRange.contains(inputValue)
+  ) {
+    inputBox.style.backgroundColor = "red";
+    return false;
+  } else {
+    inputBox.style.backgroundColor = "yellow";
+    return true;
+  }
+}
+
 document.addEventListener("DOMContentLoaded", function () {
   parameterDictionary.completeDict();
 
-  const tempInput = document.getElementById("temp-input");
-  const tempUnits = document.getElementById("temp-units");
   const pressureRadio = document.getElementById("pressure-radio");
   const altitudeRadio = document.getElementById("altitude-radio");
   const pressureInput = document.getElementById("pressure-input");
@@ -83,56 +120,10 @@ document.addEventListener("DOMContentLoaded", function () {
   const pressureUnits = document.getElementById("pressure-units");
   const altitudeUnits = document.getElementById("altitude-units");
 
-  // Initial Webpage:
+  // Initialize Webpage:
   pressureRadio.checked = true;
   PressureAltitudeChecked();
   performPressureAltitude();
-
-  function performInputValidation(callingElement) {
-    let inputBox, unitBox;
-    let func;
-    let objRange;
-    if (callingElement === tempInput || callingElement === tempUnits) {
-      inputBox = tempInput;
-      unitBox = tempUnits;
-      func = convertTemp;
-      objRange = tempRange;
-    } else if (
-      callingElement === pressureInput ||
-      callingElement === pressureUnits
-    ) {
-      inputBox = pressureInput;
-      unitBox = pressureUnits;
-      func = convertPressure;
-      objRange = pressureRange;
-    } else if (
-      callingElement === altitudeInput ||
-      callingElement === altitudeUnits
-    ) {
-      inputBox = altitudeInput;
-      unitBox = altitudeUnits;
-      func = convertAltitude;
-      objRange = altitudeRange;
-    }
-
-    if (inputBox.readOnly) {
-      return true;
-    }
-
-    const inputValue = func(inputBox.value, unitBox.value);
-
-    if (
-      inputBox.value === "" ||
-      isNaN(inputBox.value) ||
-      !objRange.contains(inputValue)
-    ) {
-      inputBox.style.backgroundColor = "red";
-      return false;
-    } else {
-      inputBox.style.backgroundColor = "yellow";
-      return true;
-    }
-  }
 
   function performPressureAltitude() {
     if (pressureRadio.checked) {
@@ -159,10 +150,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  pressureRadio.addEventListener("click", function () {
-    PressureAltitudeChecked();
-  });
-
   pressureInput.addEventListener("input", function () {
     if (performInputValidation(this)) performPressureAltitude();
   });
@@ -171,26 +158,19 @@ document.addEventListener("DOMContentLoaded", function () {
     if (performInputValidation(this)) performPressureAltitude();
   });
 
-  tempInput.addEventListener("input", function () {
-    performInputValidation(this);
-  });
-
-  tempUnits.addEventListener("change", function () {
-    updateRanges();
-    performInputValidation(this);
-  });
-
   pressureUnits.addEventListener("change", function () {
-    updateRanges();
     if (performInputValidation(this)) performPressureAltitude();
   });
 
   altitudeUnits.addEventListener("change", function () {
-    updateRanges();
     if (performInputValidation(this)) performPressureAltitude();
   });
 
   altitudeRadio.addEventListener("click", function () {
+    PressureAltitudeChecked();
+  });
+
+  pressureRadio.addEventListener("click", function () {
     PressureAltitudeChecked();
   });
 
@@ -222,7 +202,7 @@ function convertPressure(value, fromUnit, toUnit = "Pa") {
     Bar: 100000,
     mBar: 100,
     "mm H2O": 9.80665,
-    "mm Hg": 1333.22,
+    "mm Hg": 133.322,
     Atmosphere: 101325,
     PSI: 6894.76,
   };
