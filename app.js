@@ -9,21 +9,48 @@ class Range {
   }
 }
 
-const pressureRange = new Range(5000, 1e6); // Pa
-const tempRange = new Range(-100, 100); // C
-const altitudeRange = new Range(-5000, 11000); // m
+const pressureRange = new Range((min = 5000), (max = 1e6)); // Pa
+const temperatureRange = new Range((min = -100), (max = 100)); // C
+const altitudeRange = new Range((min = -5000), (max = 11000)); // m
 
 const parameterDictionary = {
-  temp: { objRange: tempRange, convertingFunc: convertTemp, fromUnit: "C" },
+  temperature: {
+    objRange: temperatureRange,
+    convertingFunc: converttemperature,
+    fromUnit: "C",
+    units: [
+      { value: "C", label: "Celsius" },
+      { value: "F", label: "Fahrenheit" },
+      { value: "K", label: "Kelvin" },
+      { value: "R", label: "Rankine" },
+    ],
+  },
+
   pressure: {
     objRange: pressureRange,
     convertingFunc: convertPressure,
     fromUnit: "Pa",
+    units: [
+      { value: "Pa", label: "Pa" },
+      { value: "kPa", label: "kPa" },
+      { value: "Bar", label: "Bar" },
+      { value: "mBar", label: "mBar" },
+      { value: "mm H2O", label: "mm H2O" },
+      { value: "mm Hg", label: "mm Hg" },
+      { value: "Atmosphere", label: "Atmosphere" },
+      { value: "PSI", label: "PSI" },
+    ],
   },
   altitude: {
     objRange: altitudeRange,
     convertingFunc: convertAltitude,
     fromUnit: "m",
+    units: [
+      { value: "m", label: "m" },
+      { value: "ft", label: "ft" },
+      { value: "km", label: "km" },
+      { value: "mile", label: "mile" },
+    ],
   },
 
   completeDict: function () {
@@ -39,7 +66,7 @@ const parameterDictionary = {
         this[key].inputDigints = document.getElementById(key + "-digits");
         this[key].inputBox = document.getElementById(key + "-input");
 
-        if (key !== "temp") {
+        if (key !== "temperature") {
           this[key].radioButton = document.getElementById(key + "-radio");
           this[key].radioButton.addEventListener("click", function () {
             handleCheckBoxes();
@@ -148,6 +175,7 @@ function performPressureAltitudeCalc() {
 }
 
 document.addEventListener("DOMContentLoaded", function () {
+  addOneElementRow("temperature");
   parameterDictionary.completeDict();
   // Initialize Webpage:
   parameterDictionary["pressure"].radioButton.checked = true;
@@ -170,6 +198,93 @@ function handleCheckBoxes() {
       inputbox.setAttribute("readonly", true);
     }
   }
+}
+
+function addOneElementRow(dictKey = "pressure") {
+  const container = document.getElementById("humidityContainer");
+  // Create the div element with class "input-row"
+  const divElement = document.createElement("div");
+  divElement.setAttribute("class", "input-row");
+
+  // Create the radio input
+  const radioInput = document.createElement("input");
+  radioInput.setAttribute("type", "radio");
+  radioInput.setAttribute("id", dictKey + "-radio");
+  radioInput.setAttribute("name", "alt-" + dictKey);
+  radioInput.setAttribute("value", dictKey);
+
+  // Create the label for barometric pressure
+  const label = document.createElement("label");
+  label.setAttribute("for", dictKey + "-units");
+  label.textContent = dictKey.charAt(0).toUpperCase() + dictKey.slice(1) + ":";
+
+  // Create the input element for pressure
+  const input = document.createElement("input");
+  input.setAttribute("id", dictKey + "-input");
+  input.setAttribute("type", "number");
+  input.setAttribute("step", "1");
+  input.setAttribute("value", "");
+
+  // Create the select element for units
+  const select = document.createElement("select");
+  select.setAttribute("id", dictKey + "-units");
+  select.setAttribute("name", dictKey + "-units");
+
+  const options = parameterDictionary[dictKey].units;
+
+  options.forEach((option) => {
+    const opt = document.createElement("option");
+    opt.setAttribute("value", option.value);
+    opt.textContent = option.label;
+    select.appendChild(opt);
+  });
+
+  // Create the span elements for min and max values
+  const minSpan = document.createElement("span");
+  minSpan.setAttribute("class", "range-label");
+  minSpan.innerHTML = "&nbsp;Min:&nbsp;";
+  const maxSpan = document.createElement("span");
+  maxSpan.setAttribute("class", "range-label");
+  maxSpan.innerHTML = "&nbsp;Max:&nbsp;";
+
+  // Create the labels for min and max pressure
+  const minLabel = document.createElement("label");
+  minLabel.setAttribute("class", "range-" + dictKey + "Min");
+  minLabel.setAttribute("id", "range-" + dictKey + "Min");
+  minLabel.textContent = parameterDictionary[dictKey].objRange.min;
+  const maxLabel = document.createElement("label");
+  maxLabel.setAttribute("class", "range-" + dictKey + "Max");
+  maxLabel.setAttribute("id", "range-" + dictKey + "Max");
+  maxLabel.textContent = parameterDictionary[dictKey].objRange.max;
+
+  // Create the label for digits
+  const labelDig = document.createElement("label");
+  labelDig.setAttribute("class", "digits-label");
+  labelDig.setAttribute("for", dictKey + "-digits");
+  labelDig.textContent = "Digits:";
+
+  // Create the input element for digits
+  const inputDig = document.createElement("input");
+  inputDig.setAttribute("id", dictKey + "-digits");
+  inputDig.setAttribute("type", "number");
+  inputDig.setAttribute("min", "0");
+  inputDig.setAttribute("max", "10");
+  inputDig.setAttribute("value", "3");
+
+  // Append the elements to the input-row div element
+  if (dictKey !== "temperature") divElement.appendChild(radioInput);
+  divElement.appendChild(label);
+  divElement.appendChild(input);
+  divElement.appendChild(select);
+  divElement.appendChild(minSpan);
+  divElement.appendChild(minLabel);
+  divElement.appendChild(maxSpan);
+  divElement.appendChild(maxLabel);
+  divElement.appendChild(labelDig);
+  divElement.appendChild(inputDig);
+
+  // Append the input-row div element to the container element
+  container.appendChild(divElement);
 }
 
 function convertPressure(value, fromUnit, toUnit = "Pa") {
@@ -198,7 +313,7 @@ function convertPressure(value, fromUnit, toUnit = "Pa") {
   return result;
 }
 
-function convertTemp(value, fromUnit, toUnit = "C") {
+function converttemperature(value, fromUnit, toUnit = "C") {
   const fromUnitsToKelvin = {
     C: (val) => val + 273.15,
     K: (val) => val,
