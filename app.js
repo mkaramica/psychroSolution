@@ -41,19 +41,31 @@ const parameterDictionary = {
 
         if (key !== "temp") {
           this[key].radioButton = document.getElementById(key + "-radio");
+          this[key].radioButton.addEventListener("click", function () {
+            handleCheckBoxes();
+          });
         }
 
         this[key].inputDigints.addEventListener("input", function () {
           updateRanges();
+          if (key === "pressure" || key === "altitude") {
+            performPressureAltitudeCalc();
+          }
         });
 
         this[key].inputBox.addEventListener("input", function () {
-          performInputValidation(this);
+          const isValid = performInputValidation(this);
+          if (key === "pressure" || key === "altitude") {
+            if (isValid) performPressureAltitudeCalc();
+          }
         });
 
         this[key].unitCombo.addEventListener("change", function () {
           updateRanges();
-          performInputValidation(this);
+          const isValid = performInputValidation(this);
+          if (key === "pressure" || key === "altitude") {
+            if (isValid) performPressureAltitudeCalc();
+          }
         });
       }
     }
@@ -110,90 +122,55 @@ function performInputValidation(callingElement) {
   }
 }
 
+function performPressureAltitudeCalc() {
+  let inputKey, outputKey;
+  if (parameterDictionary["pressure"].radioButton.checked) {
+    inputKey = "pressure";
+    outputKey = "altitude";
+  } else {
+    inputKey = "altitude";
+    outputKey = "pressure";
+  }
+
+  const dictInput = parameterDictionary[inputKey];
+  const dictOutput = parameterDictionary[outputKey];
+
+  const valInput = dictInput.convertingFunc(
+    dictInput.inputBox.value,
+    dictInput.unitCombo.value
+  );
+
+  const valOutput = calcPressureAltitude(valInput, inputKey);
+
+  dictOutput.inputBox.value = dictOutput
+    .convertingFunc(valOutput, dictOutput.fromUnit, dictOutput.unitCombo.value)
+    .toFixed(dictOutput.inputDigints.value);
+}
+
 document.addEventListener("DOMContentLoaded", function () {
   parameterDictionary.completeDict();
-
-  const pressureRadio = document.getElementById("pressure-radio");
-  const altitudeRadio = document.getElementById("altitude-radio");
-  const pressureInput = document.getElementById("pressure-input");
-  const altitudeInput = document.getElementById("altitude-input");
-  const pressureUnits = document.getElementById("pressure-units");
-  const altitudeUnits = document.getElementById("altitude-units");
-
   // Initialize Webpage:
-  pressureRadio.checked = true;
-  PressureAltitudeChecked();
-  performPressureAltitude();
-
-  function performPressureAltitude() {
-    if (pressureRadio.checked) {
-      const pressure = convertPressure(
-        pressureInput.value,
-        pressureUnits.value,
-        "Pa"
-      );
-      const altitude = calcAltitudebyPressure(pressure);
-      altitudeInput.value = convertAltitude(altitude, "m", altitudeUnits.value);
-    } else if (altitudeRadio.checked) {
-      const altitude = convertAltitude(
-        altitudeInput.value,
-        altitudeUnits.value,
-        "m"
-      );
-      const pressure = calcPressureByAltitude(altitude);
-
-      pressureInput.value = convertPressure(
-        pressure,
-        "Pa",
-        pressureUnits.value
-      );
-    }
-  }
-
-  pressureInput.addEventListener("input", function () {
-    if (performInputValidation(this)) performPressureAltitude();
-  });
-
-  altitudeInput.addEventListener("input", function () {
-    if (performInputValidation(this)) performPressureAltitude();
-  });
-
-  pressureUnits.addEventListener("change", function () {
-    if (performInputValidation(this)) performPressureAltitude();
-  });
-
-  altitudeUnits.addEventListener("change", function () {
-    if (performInputValidation(this)) performPressureAltitude();
-  });
-
-  altitudeRadio.addEventListener("click", function () {
-    PressureAltitudeChecked();
-  });
-
-  pressureRadio.addEventListener("click", function () {
-    PressureAltitudeChecked();
-  });
-
-  function PressureAltitudeChecked() {
-    if (pressureRadio.checked) {
-      altitudeInput.style.backgroundColor = "skyblue";
-      altitudeInput.setAttribute("readonly", true);
-
-      pressureInput.removeAttribute("readonly");
-      pressureInput.style.backgroundColor = "yellow";
-      pressureInput.focus();
-      pressureInput.select();
-    } else if (altitudeRadio.checked) {
-      pressureInput.style.backgroundColor = "skyblue";
-      pressureInput.setAttribute("readonly", true);
-
-      altitudeInput.removeAttribute("readonly");
-      altitudeInput.style.backgroundColor = "yellow";
-      altitudeInput.focus();
-      altitudeInput.select();
-    }
-  }
+  parameterDictionary["pressure"].radioButton.checked = true;
+  handleCheckBoxes();
+  performPressureAltitudeCalc();
 });
+
+function handleCheckBoxes() {
+  const keyGRoup = ["pressure", "altitude"];
+
+  for (const key of keyGRoup) {
+    let inputbox = parameterDictionary[key].inputBox;
+    if (parameterDictionary[key].radioButton.checked) {
+      inputbox.removeAttribute("readonly");
+      inputbox.style.backgroundColor = "yellow";
+      inputbox.focus();
+      inputbox.select();
+    } else {
+      inputbox.style.backgroundColor = "skyblue";
+      inputbox.setAttribute("readonly", true);
+    }
+  }
+}
 
 function convertPressure(value, fromUnit, toUnit = "Pa") {
   const units = {
@@ -277,18 +254,11 @@ function convertAltitude(value, fromUnit, toUnit = "m") {
   return result;
 }
 
-function calcPressureByAltitude(altitude_m) {
+function calcPressureAltitude(inputValue, key) {
   const P0 = 101325;
   const coeff = 2.25577 * 1e-5;
   const powCoeff = 5.2;
-  const p = P0 * Math.pow(1 - coeff * altitude_m, powCoeff);
-  return p;
-}
-
-function calcAltitudebyPressure(Pressure_Pa) {
-  const P0 = 101325;
-  const coeff = 2.25577 * 1e-5;
-  const powCoeff = 5.2;
-  const z = (1 - Math.pow(Pressure_Pa / P0, 1 / powCoeff)) / coeff;
-  return z;
+  return key === "pressure"
+    ? (1 - Math.pow(inputValue / P0, 1 / powCoeff)) / coeff
+    : P0 * Math.pow(1 - coeff * inputValue, powCoeff);
 }
