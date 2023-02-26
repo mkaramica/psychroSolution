@@ -13,10 +13,19 @@ const pressureRange = new Range((min = 5000), (max = 1e6)); // Pa
 const temperatureRange = new Range((min = -100), (max = 100)); // C
 const altitudeRange = new Range((min = -5000), (max = 11000)); // m
 
+const dewPointTempRange = new Range((min = -100), (max = 100)); // C
+const wetBulbTempRange = new Range((min = -100), (max = 100)); // C
+
+const sectionDict = {
+  Temperature: ["Temperature"],
+  Pressure: ["Pressure", "Altitude"],
+  Humidity: ["Dew Point Temperature", "Wet Bulb Temperature"],
+};
+
 const parameterDictionary = {
-  temperature: {
+  Temperature: {
     objRange: temperatureRange,
-    convertingFunc: converttemperature,
+    convertingFunc: convertTemperature,
     fromUnit: "C",
     units: [
       { value: "C", label: "Celsius" },
@@ -26,7 +35,7 @@ const parameterDictionary = {
     ],
   },
 
-  pressure: {
+  Pressure: {
     objRange: pressureRange,
     convertingFunc: convertPressure,
     fromUnit: "Pa",
@@ -41,7 +50,7 @@ const parameterDictionary = {
       { value: "PSI", label: "PSI" },
     ],
   },
-  altitude: {
+  Altitude: {
     objRange: altitudeRange,
     convertingFunc: convertAltitude,
     fromUnit: "m",
@@ -50,6 +59,30 @@ const parameterDictionary = {
       { value: "ft", label: "ft" },
       { value: "km", label: "km" },
       { value: "mile", label: "mile" },
+    ],
+  },
+
+  "Dew Point Temperature": {
+    objRange: dewPointTempRange,
+    convertingFunc: convertTemperature,
+    fromUnit: "C",
+    units: [
+      { value: "C", label: "Celsius" },
+      { value: "F", label: "Fahrenheit" },
+      { value: "K", label: "Kelvin" },
+      { value: "R", label: "Rankine" },
+    ],
+  },
+
+  "Wet Bulb Temperature": {
+    objRange: wetBulbTempRange,
+    convertingFunc: convertTemperature,
+    fromUnit: "C",
+    units: [
+      { value: "C", label: "Celsius" },
+      { value: "F", label: "Fahrenheit" },
+      { value: "K", label: "Kelvin" },
+      { value: "R", label: "Rankine" },
     ],
   },
 
@@ -66,7 +99,7 @@ const parameterDictionary = {
         this[key].inputDigints = document.getElementById(key + "-digits");
         this[key].inputBox = document.getElementById(key + "-input");
 
-        if (key !== "temperature") {
+        if (key !== "Temperature") {
           this[key].radioButton = document.getElementById(key + "-radio");
           this[key].radioButton.addEventListener("click", function () {
             handleCheckBoxes();
@@ -75,14 +108,14 @@ const parameterDictionary = {
 
         this[key].inputDigints.addEventListener("input", function () {
           updateRanges();
-          if (key === "pressure" || key === "altitude") {
+          if (key === "Pressure" || key === "Altitude") {
             performPressureAltitudeCalc();
           }
         });
 
         this[key].inputBox.addEventListener("input", function () {
           const isValid = performInputValidation(this);
-          if (key === "pressure" || key === "altitude") {
+          if (key === "Pressure" || key === "Altitude") {
             if (isValid) performPressureAltitudeCalc();
           }
         });
@@ -90,7 +123,7 @@ const parameterDictionary = {
         this[key].unitCombo.addEventListener("change", function () {
           updateRanges();
           const isValid = performInputValidation(this);
-          if (key === "pressure" || key === "altitude") {
+          if (key === "Pressure" || key === "Altitude") {
             if (isValid) performPressureAltitudeCalc();
           }
         });
@@ -151,12 +184,12 @@ function performInputValidation(callingElement) {
 
 function performPressureAltitudeCalc() {
   let inputKey, outputKey;
-  if (parameterDictionary["pressure"].radioButton.checked) {
-    inputKey = "pressure";
-    outputKey = "altitude";
+  if (parameterDictionary["Pressure"].radioButton.checked) {
+    inputKey = "Pressure";
+    outputKey = "Altitude";
   } else {
-    inputKey = "altitude";
-    outputKey = "pressure";
+    inputKey = "Altitude";
+    outputKey = "Pressure";
   }
 
   const dictInput = parameterDictionary[inputKey];
@@ -174,28 +207,44 @@ function performPressureAltitudeCalc() {
     .toFixed(dictOutput.inputDigints.value);
 }
 
+function initializePage() {
+  parameterDictionary["Temperature"].inputBox.value = "25";
+
+  parameterDictionary["Pressure"].radioButton.checked = true;
+  parameterDictionary["Pressure"].inputBox.value = "101325";
+
+  parameterDictionary["Dew Point Temperature"].radioButton.checked = true;
+  parameterDictionary["Dew Point Temperature"].inputBox.value = "10";
+
+  handleCheckBoxes();
+  performPressureAltitudeCalc();
+}
+
 document.addEventListener("DOMContentLoaded", function () {
   addHTMLElements();
   parameterDictionary.completeDict();
   // Initialize Webpage:
-  parameterDictionary["pressure"].radioButton.checked = true;
-  handleCheckBoxes();
-  performPressureAltitudeCalc();
+  initializePage();
 });
 
 function handleCheckBoxes() {
-  const keyGRoup = ["pressure", "altitude"];
+  for (const sectionKey in sectionDict) {
+    if (sectionKey !== "Temperature") {
+      console.log(sectionKey);
+      items = sectionDict[sectionKey];
 
-  for (const key of keyGRoup) {
-    let inputbox = parameterDictionary[key].inputBox;
-    if (parameterDictionary[key].radioButton.checked) {
-      inputbox.removeAttribute("readonly");
-      inputbox.style.backgroundColor = "yellow";
-      inputbox.focus();
-      inputbox.select();
-    } else {
-      inputbox.style.backgroundColor = "skyblue";
-      inputbox.setAttribute("readonly", true);
+      for (itemKey of items) {
+        let inputbox = parameterDictionary[itemKey].inputBox;
+        if (parameterDictionary[itemKey].radioButton.checked) {
+          inputbox.removeAttribute("readonly");
+          inputbox.style.backgroundColor = "yellow";
+          inputbox.focus();
+          inputbox.select();
+        } else {
+          inputbox.style.backgroundColor = "skyblue";
+          inputbox.setAttribute("readonly", true);
+        }
+      }
     }
   }
 }
@@ -216,7 +265,7 @@ function addOneElementRow(parentSection, dictKey) {
   // Create the label for barometric pressure
   const label = document.createElement("label");
   label.setAttribute("for", dictKey + "-units");
-  label.textContent = dictKey.charAt(0).toUpperCase() + dictKey.slice(1) + ":";
+  label.textContent = dictKey + ":";
 
   // Create the input element for pressure
   const input = document.createElement("input");
@@ -272,7 +321,7 @@ function addOneElementRow(parentSection, dictKey) {
   inputDig.setAttribute("value", "3");
 
   // Append the elements to the input-row div element
-  if (dictKey !== "temperature") divElement.appendChild(radioInput);
+  if (dictKey !== "Temperature") divElement.appendChild(radioInput);
   divElement.appendChild(label);
   divElement.appendChild(input);
   divElement.appendChild(select);
@@ -288,15 +337,9 @@ function addOneElementRow(parentSection, dictKey) {
 }
 
 function addHTMLElements() {
-  const sectionDict = {
-    temperature: ["temperature"],
-    pressure: ["pressure", "altitude"],
-    humidity: [],
-  };
-
-  for (const key in sectionDict) {
-    sectionDict[key].forEach(function (element) {
-      addOneElementRow(key, element);
+  for (const sectionKey in sectionDict) {
+    sectionDict[sectionKey].forEach(function (element) {
+      addOneElementRow(sectionKey, element);
     });
   }
 }
@@ -327,7 +370,7 @@ function convertPressure(value, fromUnit, toUnit = "Pa") {
   return result;
 }
 
-function converttemperature(value, fromUnit, toUnit = "C") {
+function convertTemperature(value, fromUnit, toUnit = "C") {
   const fromUnitsToKelvin = {
     C: (val) => val + 273.15,
     K: (val) => val,
@@ -387,7 +430,7 @@ function calcPressureAltitude(inputValue, key) {
   const P0 = 101325;
   const coeff = 2.25577 * 1e-5;
   const powCoeff = 5.2;
-  return key === "pressure"
+  return key === "Pressure"
     ? (1 - Math.pow(inputValue / P0, 1 / powCoeff)) / coeff
     : P0 * Math.pow(1 - coeff * inputValue, powCoeff);
 }

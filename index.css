@@ -9,8 +9,9 @@
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
 }
 
-.pressureContainer,
-.humidityContainer {
+.TemperatureContainer,
+.PressureContainer,
+.HumidityContainer {
   border: 2px solid #ccc;
   border-radius: 10px;
   padding: 10px;
