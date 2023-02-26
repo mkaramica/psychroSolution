@@ -175,7 +175,7 @@ function performPressureAltitudeCalc() {
 }
 
 document.addEventListener("DOMContentLoaded", function () {
-  addOneElementRow("temperature");
+  addHTMLElements();
   parameterDictionary.completeDict();
   // Initialize Webpage:
   parameterDictionary["pressure"].radioButton.checked = true;
@@ -200,8 +200,8 @@ function handleCheckBoxes() {
   }
 }
 
-function addOneElementRow(dictKey = "pressure") {
-  const container = document.getElementById("humidityContainer");
+function addOneElementRow(parentSection, dictKey) {
+  const container = document.getElementById(parentSection + "Container");
   // Create the div element with class "input-row"
   const divElement = document.createElement("div");
   divElement.setAttribute("class", "input-row");
@@ -210,7 +210,7 @@ function addOneElementRow(dictKey = "pressure") {
   const radioInput = document.createElement("input");
   radioInput.setAttribute("type", "radio");
   radioInput.setAttribute("id", dictKey + "-radio");
-  radioInput.setAttribute("name", "alt-" + dictKey);
+  radioInput.setAttribute("name", "alt-" + parentSection);
   radioInput.setAttribute("value", dictKey);
 
   // Create the label for barometric pressure
@@ -285,6 +285,20 @@ function addOneElementRow(dictKey = "pressure") {
 
   // Append the input-row div element to the container element
   container.appendChild(divElement);
+}
+
+function addHTMLElements() {
+  const sectionDict = {
+    temperature: ["temperature"],
+    pressure: ["pressure", "altitude"],
+    humidity: [],
+  };
+
+  for (const key in sectionDict) {
+    sectionDict[key].forEach(function (element) {
+      addOneElementRow(key, element);
+    });
+  }
 }
 
 function convertPressure(value, fromUnit, toUnit = "Pa") {
