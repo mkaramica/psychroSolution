@@ -1,3 +1,7 @@
+const MW_water = 18.01528;
+const MW_dryAir = 28.9645;
+const Ru = 8.31441;
+
 class Range {
   constructor(min, max) {
     this.min = min;
@@ -274,6 +278,26 @@ function performInputValidation(callingElement) {
 }
 
 function performCalculations() {
+  const Pin = parameterDictionary["Pressure"].convertingFunc(
+    parameterDictionary["Pressure"].inputBox.value,
+    parameterDictionary["Pressure"].unitCombo.value
+  );
+
+  const Tin = parameterDictionary["Temperature"].convertingFunc(
+    parameterDictionary["Temperature"].inputBox.value,
+    parameterDictionary["Temperature"].unitCombo.value
+  );
+
+  const rangeHumid = humidityRanges(Pin, Tin);
+
+  updateRanges();
+
+  humidRatioRange.max = rangeHumid[HumidRatioMax];
+  absHumidRange.max = rangeHumid[absHumidMax];
+  moleFracRange.max = rangeHumid[moleFracH2OMax];
+  massFracRange.max = rangeHumid[massFracH2oMax];
+  waterPartPreseRange.max = rangeHumid[Pg];
+
   for (const sectionKey in sectionDict) {
     if (sectionKey !== "Temperature") {
       let calcResults;
@@ -294,7 +318,10 @@ function performCalculations() {
       }
 
       for (itemKey of sectionDict[sectionKey]) {
-        if (!parameterDictionary[itemKey].radioButton.checked) {
+        if (
+          sectionKey === "PRessure" &&
+          !parameterDictionary[itemKey].radioButton.checked
+        ) {
           const dictOutput = parameterDictionary[itemKey];
           const valOutput = calcResults[itemKey];
           dictOutput.inputBox.value = dictOutput
@@ -635,35 +662,64 @@ function thermodynamicCalculations(inputValue, itemKey, sectionKey) {
         dictPressure.unitCombo.value
       );
 
-      const Psat = waterSatPressure(Tin);
-
       let relHumid,
         absHumid,
+        absHumidMax,
         HumidRatio,
+        HumidRatioMax,
         Tdp,
         Twb,
+        TwbMin,
         Pv,
+        Pg,
         moleFracH2O,
-        massFracH2o;
+        moleFracH2OMax,
+        massFracH2o,
+        massFracH2oMax,
+        MW_satAir;
+
+      Pg = waterSatPressure(Tin);
+      absHumidMax = (Pg * MW_water) / (Ru * (Tin + 273.15));
+      HumidRatioMax = (MW_water / MW_dryAir) * (Pg / (Pin - Pg));
+      moleFracH2OMax = Pg / Pin;
+      MW_satAir = moleFracH2OMax * MW_water + (1 - moleFracH2OMax) * MW_dryAir;
+      massFracH2oMax = (moleFracH2OMax * MW_water) / MW_satAir;
 
       switch (itemKey) {
         case "Relative Humidity":
           relHumid = inputValue;
+          Pv = relHumid * Pg;
           break;
         case "Absolute Humidity":
           absHumid = inputValue;
+          Pv = (absHumid * Ru * (Tin + 273.15)) / MW_water;
           break;
         case "Humidity Ratio":
+          HumidRatio = inputValue;
+          Pv =
+            (MW_dryAir + MW_water * HumidRatio * Pin) /
+            (MW_water + MW_dryAir * HumidRatio);
           break;
         case "Dew Point Temperature":
+          Tdp = inputValue;
+          Pv = waterSatPressure(Tdp);
           break;
         case "Wet Bulb Temperature":
+          Twb = inputValue;
           break;
         case "Water Partial Pressure":
+          Pv = inputValue;
           break;
         case "Water Mole Fraction":
+          moleFracH2O = inputValue;
+          Pv = Pin * moleFracH2O;
           break;
         case "Water Mass Fraction":
+          massFracH2o = inputValue;
+          moleFracH2O =
+            (MW_dryAir * massFracH2o) /
+            (MW_water + massFracH2o * (MW_dryAir - MW_water));
+          Pv = Pin * moleFracH2O;
           break;
       }
   }
@@ -736,4 +792,29 @@ function waterSatTemperature(pressure) {
   } while (itr < itrMax && Tmax - Tmin > errOK);
 
   return Tgoal;
+}
+
+function humidityRanges(Pin, Tin) {
+  Pg = waterSatPressure(Tin);
+  absHumidMax = (Pg * MW_water) / (Ru * (Tin + 273.15));
+  HumidRatioMax = (MW_water / MW_dryAir) * (Pg / (Pin - Pg));
+  moleFracH2OMax = Pg / Pin;
+  MW_satAir = moleFracH2OMax * MW_water + (1 - moleFracH2OMax) * MW_dryAir;
+  massFracH2oMax = (moleFracH2OMax * MW_water) / MW_satAir;
+  return {
+    Pg: Pg,
+    absHumidMax: absHumidMax,
+    HumidRatioMax: HumidRatioMax,
+    moleFracH2OMax: moleFracH2OMax,
+    massFracH2oMax: massFracH2oMax,
+  };
+}
+
+function calcHumidityRatioByTwb(Twb, Tdb, Pamb) {
+  const Pg = waterSatPressure(Twb);
+  HumidityRatioSat = (MW_water / MW_dryAir) * Pg * (Pamb - Pg);
+  return (
+    (HumidityRatioSat * (2501 - 2.381 * Twb) - 1.006 * (Tdb - Twb)) /
+    (2501 + 1.805 * Tdb - 4.186 * Twb)
+  );
 }
