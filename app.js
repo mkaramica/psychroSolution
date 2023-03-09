@@ -205,6 +205,7 @@ const parameterDictionary = {
           updateRanges();
           if (["Pressure", "Altitude", "Temperature"].includes(key)) {
             performPressureCalculations();
+            performHumidityCalculations();
           }
           if (sectionDict["Humidity"].includes(key)) {
             performHumidityCalculations();
@@ -216,6 +217,27 @@ const parameterDictionary = {
           if (isValid) {
             if (["Pressure", "Altitude", "Temperature"].includes(key)) {
               performPressureCalculations();
+
+              // Validate Humidity Input
+              let activeHumidelement = undefined;
+              for (const param of sectionDict["Humidity"]) {
+                if (
+                  parameterDictionary[param].hasOwnProperty("radioButton") &&
+                  parameterDictionary[param].radioButton.checked
+                ) {
+                  activeHumidelement = document.getElementById(
+                    param + "-input"
+                  );
+                  break;
+                }
+              }
+              const isHumidelementValid =
+                performInputValidation(activeHumidelement);
+
+              if (isHumidelementValid) {
+                performHumidityCalculations();
+              }
+              //----------
             }
             if (sectionDict["Humidity"].includes(key)) {
               performHumidityCalculations();
@@ -230,6 +252,28 @@ const parameterDictionary = {
           if (isValid) {
             if (["Pressure", "Altitude", "Temperature"].includes(key)) {
               performPressureCalculations();
+
+              // Validate Humidity Input
+              let activeHumidelement = undefined;
+              for (const param of sectionDict["Humidity"]) {
+                if (
+                  parameterDictionary[param].hasOwnProperty("radioButton") &&
+                  parameterDictionary[param].radioButton.checked
+                ) {
+                  activeHumidelement = document.getElementById(
+                    param + "-input"
+                  );
+                  break;
+                }
+              }
+              const isHumidelementValid =
+                performInputValidation(activeHumidelement);
+
+              if (isHumidelementValid) {
+                performHumidityCalculations();
+              }
+              //----------
+              performHumidityCalculations();
             }
             if (sectionDict["Humidity"].includes(key)) {
               performHumidityCalculations();
@@ -318,7 +362,6 @@ function performPressureCalculations() {
         .toFixed(dictOutput.inputDigints.value);
     }
   }
-
   const {
     Tin,
     TwbMin,
@@ -339,7 +382,6 @@ function performPressureCalculations() {
   massFracRange.max = massFracH2oMax;
 
   updateRanges();
-  performHumidityCalculations();
 }
 
 function initializePage() {
@@ -360,6 +402,7 @@ function initializePage() {
 
   handleCheckBoxes("Pressure");
   performPressureCalculations();
+  performHumidityCalculations();
 }
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -516,35 +559,35 @@ function convertPressure(value, fromUnit, toUnit = "Pa") {
 function convertTemperature(value, fromUnit, toUnit = "C") {
   if (typeof value === "string") value = Number(value);
 
-  const fromUnitsToKelvin = {
-    C: (val) => val + 273.15,
-    K: (val) => val,
-    F: (val) => (5 / 9) * val + 273.15,
-    R: (val) => val * (5 / 9),
+  const fromUnitsToCelsius = {
+    C: (val) => val,
+    K: (val) => val - 273.15,
+    F: (val) => (5 / 9) * (val - 32),
+    R: (val) => (5 / 9) * val - 273.15,
   };
 
-  const fromKelvinToUnits = {
-    C: (val) => val - 273.15,
-    K: (val) => val,
-    F: (val) => val * (9 / 5) - 459.67,
-    R: (val) => val * (9 / 5),
+  const fromCelsiusToUnits = {
+    C: (val) => val,
+    K: (val) => val + 273.15,
+    F: (val) => (9 / 5) * val + 32,
+    R: (val) => (9 / 5) * (val + 273.15),
   };
 
   if (fromUnit === toUnit) {
     return value; // no conversion needed
   }
 
-  if (!fromUnitsToKelvin[fromUnit] || !fromUnitsToKelvin[toUnit]) {
+  if (!fromUnitsToCelsius[fromUnit] || !fromCelsiusToUnits[toUnit]) {
     return null; // invalid unit provided
   }
 
-  // convert input value to Kelvin
-  const kelvinValue =
-    fromUnit === "K" ? value : fromUnitsToKelvin[fromUnit](value);
+  // convert input value to Celsius
+  const CelsiusValue =
+    fromUnit === "C" ? value : fromUnitsToCelsius[fromUnit](value);
 
-  // convert Kelvin value to desired output unit
+  // convert Celsius value to desired output unit
   const result =
-    toUnit === "K" ? kelvinValue : fromKelvinToUnits[toUnit](kelvinValue);
+    toUnit === "C" ? CelsiusValue : fromCelsiusToUnits[toUnit](CelsiusValue);
 
   return result;
 }
