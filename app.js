@@ -96,7 +96,7 @@ const parameterDictionary = {
     fromUnit: "(kg moisture)/m^3",
     units: [
       { value: "(kg moisture)/m^3", label: "(kg moisture)/m^3" },
-      { value: "(g moisture)/m^3", label: "(kg moisture)/m^3" },
+      { value: "(g moisture)/m^3", label: "(g moisture)/m^3" },
       { value: "(lb moisture)/ft^3", label: "(lb moisture)/ft^3" },
     ],
   },
@@ -203,23 +203,37 @@ const parameterDictionary = {
 
         this[key].inputDigints.addEventListener("input", function () {
           updateRanges();
-          if (key === "Pressure" || key === "Altitude") {
-            performCalculations();
+          if (["Pressure", "Altitude", "Temperature"].includes(key)) {
+            performPressureCalculations();
+          }
+          if (sectionDict["Humidity"].includes(key)) {
+            performHumidityCalculations();
           }
         });
 
         this[key].inputBox.addEventListener("input", function () {
           const isValid = performInputValidation(this);
-          if (key === "Pressure" || key === "Altitude") {
-            if (isValid) performCalculations();
+          if (isValid) {
+            if (["Pressure", "Altitude", "Temperature"].includes(key)) {
+              performPressureCalculations();
+            }
+            if (sectionDict["Humidity"].includes(key)) {
+              performHumidityCalculations();
+            }
           }
         });
 
         this[key].unitCombo.addEventListener("change", function () {
           updateRanges();
           const isValid = performInputValidation(this);
-          if (key === "Pressure" || key === "Altitude") {
-            if (isValid) performCalculations();
+
+          if (isValid) {
+            if (["Pressure", "Altitude", "Temperature"].includes(key)) {
+              performPressureCalculations();
+            }
+            if (sectionDict["Humidity"].includes(key)) {
+              performHumidityCalculations();
+            }
           }
         });
       }
@@ -277,77 +291,75 @@ function performInputValidation(callingElement) {
   }
 }
 
-function performCalculations() {
-  const Pin = parameterDictionary["Pressure"].convertingFunc(
-    parameterDictionary["Pressure"].inputBox.value,
-    parameterDictionary["Pressure"].unitCombo.value
-  );
-
-  const Tin = parameterDictionary["Temperature"].convertingFunc(
-    parameterDictionary["Temperature"].inputBox.value,
-    parameterDictionary["Temperature"].unitCombo.value
-  );
-
-  const rangeHumid = humidityRanges(Pin, Tin);
-
-  updateRanges();
-
-  humidRatioRange.max = rangeHumid[HumidRatioMax];
-  absHumidRange.max = rangeHumid[absHumidMax];
-  moleFracRange.max = rangeHumid[moleFracH2OMax];
-  massFracRange.max = rangeHumid[massFracH2oMax];
-  waterPartPreseRange.max = rangeHumid[Pg];
-
-  for (const sectionKey in sectionDict) {
-    if (sectionKey !== "Temperature") {
-      let calcResults;
-      for (itemKey of sectionDict[sectionKey]) {
-        if (parameterDictionary[itemKey].radioButton.checked) {
-          const dictInput = parameterDictionary[itemKey];
-          const inputValue = dictInput.convertingFunc(
-            dictInput.inputBox.value,
-            dictInput.unitCombo.value
-          );
-          calcResults = thermodynamicCalculations(
-            inputValue,
-            itemKey,
-            sectionKey
-          );
-          break;
-        }
-      }
-
-      for (itemKey of sectionDict[sectionKey]) {
-        if (
-          sectionKey === "PRessure" &&
-          !parameterDictionary[itemKey].radioButton.checked
-        ) {
-          const dictOutput = parameterDictionary[itemKey];
-          const valOutput = calcResults[itemKey];
-          dictOutput.inputBox.value = dictOutput
-            .convertingFunc(
-              valOutput,
-              dictOutput.fromUnit,
-              dictOutput.unitCombo.value
-            )
-            .toFixed(dictOutput.inputDigints.value);
-        }
-      }
+function performPressureCalculations() {
+  let calcResults;
+  for (itemKey of sectionDict["Pressure"]) {
+    if (parameterDictionary[itemKey].radioButton.checked) {
+      const dictInput = parameterDictionary[itemKey];
+      const inputValue = dictInput.convertingFunc(
+        dictInput.inputBox.value,
+        dictInput.unitCombo.value
+      );
+      calcResults = calcPressureAltitude(inputValue, itemKey);
+      break;
     }
   }
+
+  for (itemKey of sectionDict["Pressure"]) {
+    if (!parameterDictionary[itemKey].radioButton.checked) {
+      const dictOutput = parameterDictionary[itemKey];
+      const valOutput = calcResults[itemKey];
+      dictOutput.inputBox.value = dictOutput
+        .convertingFunc(
+          valOutput,
+          dictOutput.fromUnit,
+          dictOutput.unitCombo.value
+        )
+        .toFixed(dictOutput.inputDigints.value);
+    }
+  }
+
+  const {
+    Tin,
+    TwbMin,
+    Pg,
+    absHumidMax,
+    HumidRatioMax,
+    moleFracH2OMax,
+    massFracH2oMax,
+  } = calcHumidityRange();
+
+  wetBulbTempRange.min = TwbMin;
+  wetBulbTempRange.max = Tin;
+  dewPointTempRange.max = Tin;
+  absHumidRange.max = absHumidMax;
+  humidRatioRange.max = HumidRatioMax;
+  waterPartPreseRange.max = Pg;
+  moleFracRange.max = moleFracH2OMax;
+  massFracRange.max = massFracH2oMax;
+
+  updateRanges();
+  performHumidityCalculations();
 }
 
 function initializePage() {
   parameterDictionary["Temperature"].inputBox.value = "25";
 
   parameterDictionary["Pressure"].radioButton.checked = true;
-  parameterDictionary["Pressure"].inputBox.value = "101325";
+  parameterDictionary["Pressure"].unitCombo.value = "kPa";
+  parameterDictionary["Pressure"].inputBox.value = "101.325";
 
-  parameterDictionary["Dew Point Temperature"].radioButton.checked = true;
-  parameterDictionary["Dew Point Temperature"].inputBox.value = "10";
+  parameterDictionary["Relative Humidity"].radioButton.checked = true;
+  parameterDictionary["Relative Humidity"].unitCombo.value = "%";
+  parameterDictionary["Relative Humidity"].inputBox.value = "50";
+
+  parameterDictionary["Absolute Humidity"].unitCombo.value = "(g moisture)/m^3";
+  parameterDictionary["Water Partial Pressure"].unitCombo.value = "kPa";
+  parameterDictionary["Water Mole Fraction"].unitCombo.value = "%";
+  parameterDictionary["Water Mass Fraction"].unitCombo.value = "%";
 
   handleCheckBoxes("Pressure");
-  performCalculations();
+  performPressureCalculations();
 }
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -426,7 +438,7 @@ function addOneElementRow(parentSection, dictKey) {
   maxSpan.setAttribute("class", "range-label");
   maxSpan.innerHTML = "&nbsp;Max:&nbsp;";
 
-  // Create the labels for min and max pressure
+  // Create the labels for min and max values
   const minLabel = document.createElement("label");
   minLabel.setAttribute("class", "range-" + dictKey + "Min");
   minLabel.setAttribute("id", "range-" + dictKey + "Min");
@@ -453,8 +465,8 @@ function addOneElementRow(parentSection, dictKey) {
   // Append the elements to the input-row div element
   if (dictKey !== "Temperature") divElement.appendChild(radioInput);
   divElement.appendChild(label);
-  divElement.appendChild(input);
   divElement.appendChild(select);
+  divElement.appendChild(input);
   divElement.appendChild(minSpan);
   divElement.appendChild(minLabel);
   divElement.appendChild(maxSpan);
@@ -629,100 +641,25 @@ function convertAbsHumidity(value, fromUnit, toUnit = "(kg moisture)/m^3") {
   return result;
 }
 
-function thermodynamicCalculations(inputValue, itemKey, sectionKey) {
-  switch (sectionKey) {
+function calcPressureAltitude(inputValue, itemKey) {
+  const P0 = 101325;
+  const coeff = 2.25577 * 1e-5;
+  const powCoeff = 5.2;
+
+  let pCalc, altCalc;
+
+  switch (itemKey) {
     case "Pressure":
-      const P0 = 101325;
-      const coeff = 2.25577 * 1e-5;
-      const powCoeff = 5.2;
-
-      let pCalc, altCalc;
-
-      switch (itemKey) {
-        case "Pressure":
-          pCalc = inputValue;
-          altCalc = (1 - Math.pow(inputValue / P0, 1 / powCoeff)) / coeff;
-          break;
-        case "Altitude":
-          pCalc = P0 * Math.pow(1 - coeff * inputValue, powCoeff);
-          altCalc = inputValue;
-          break;
-      }
-
-      return { Pressure: pCalc, Altitude: altCalc };
-    case "Humidity":
-      const dictTemp = parameterDictionary["Temperature"];
-      const dictPressure = parameterDictionary["Pressure"];
-      const Tin = dictTemp.convertingFunc(
-        dictTemp.inputBox.value,
-        dictTemp.unitCombo.value
-      );
-      const Pin = dictPressure.convertingFunc(
-        dictPressure.inputBox.value,
-        dictPressure.unitCombo.value
-      );
-
-      let relHumid,
-        absHumid,
-        absHumidMax,
-        HumidRatio,
-        HumidRatioMax,
-        Tdp,
-        Twb,
-        TwbMin,
-        Pv,
-        Pg,
-        moleFracH2O,
-        moleFracH2OMax,
-        massFracH2o,
-        massFracH2oMax,
-        MW_satAir;
-
-      Pg = waterSatPressure(Tin);
-      absHumidMax = (Pg * MW_water) / (Ru * (Tin + 273.15));
-      HumidRatioMax = (MW_water / MW_dryAir) * (Pg / (Pin - Pg));
-      moleFracH2OMax = Pg / Pin;
-      MW_satAir = moleFracH2OMax * MW_water + (1 - moleFracH2OMax) * MW_dryAir;
-      massFracH2oMax = (moleFracH2OMax * MW_water) / MW_satAir;
-
-      switch (itemKey) {
-        case "Relative Humidity":
-          relHumid = inputValue;
-          Pv = relHumid * Pg;
-          break;
-        case "Absolute Humidity":
-          absHumid = inputValue;
-          Pv = (absHumid * Ru * (Tin + 273.15)) / MW_water;
-          break;
-        case "Humidity Ratio":
-          HumidRatio = inputValue;
-          Pv =
-            (MW_dryAir + MW_water * HumidRatio * Pin) /
-            (MW_water + MW_dryAir * HumidRatio);
-          break;
-        case "Dew Point Temperature":
-          Tdp = inputValue;
-          Pv = waterSatPressure(Tdp);
-          break;
-        case "Wet Bulb Temperature":
-          Twb = inputValue;
-          break;
-        case "Water Partial Pressure":
-          Pv = inputValue;
-          break;
-        case "Water Mole Fraction":
-          moleFracH2O = inputValue;
-          Pv = Pin * moleFracH2O;
-          break;
-        case "Water Mass Fraction":
-          massFracH2o = inputValue;
-          moleFracH2O =
-            (MW_dryAir * massFracH2o) /
-            (MW_water + massFracH2o * (MW_dryAir - MW_water));
-          Pv = Pin * moleFracH2O;
-          break;
-      }
+      pCalc = inputValue;
+      altCalc = (1 - Math.pow(inputValue / P0, 1 / powCoeff)) / coeff;
+      break;
+    case "Altitude":
+      pCalc = P0 * Math.pow(1 - coeff * inputValue, powCoeff);
+      altCalc = inputValue;
+      break;
   }
+
+  return { Pressure: pCalc, Altitude: altCalc };
 }
 
 function waterSatPressure(temperature) {
@@ -777,7 +714,7 @@ function waterSatTemperature(pressure) {
     let p_b = waterSatPressure(Tmin);
     let p_t = waterSatPressure(Tmax);
     Tgoal = 0.5 * (Tmin + Tmax);
-    let Pgoal = waterSatTemperature(Tgoal);
+    let Pgoal = waterSatPressure(Tgoal);
 
     let e_b = p_b - pressure;
     let e_g = Pgoal - pressure;
@@ -794,14 +731,141 @@ function waterSatTemperature(pressure) {
   return Tgoal;
 }
 
-function humidityRanges(Pin, Tin) {
-  Pg = waterSatPressure(Tin);
-  absHumidMax = (Pg * MW_water) / (Ru * (Tin + 273.15));
-  HumidRatioMax = (MW_water / MW_dryAir) * (Pg / (Pin - Pg));
-  moleFracH2OMax = Pg / Pin;
-  MW_satAir = moleFracH2OMax * MW_water + (1 - moleFracH2OMax) * MW_dryAir;
-  massFracH2oMax = (moleFracH2OMax * MW_water) / MW_satAir;
+function performHumidityCalculations() {
+  const Pin = parameterDictionary["Pressure"].convertingFunc(
+    parameterDictionary["Pressure"].inputBox.value,
+    parameterDictionary["Pressure"].unitCombo.value
+  );
+
+  const Tin = parameterDictionary["Temperature"].convertingFunc(
+    parameterDictionary["Temperature"].inputBox.value,
+    parameterDictionary["Temperature"].unitCombo.value
+  );
+
+  let inputHumidParam;
+
+  const params = sectionDict["Humidity"];
+
+  for (const param of params) {
+    if (parameterDictionary[param].radioButton.checked) {
+      inputHumidParam = param;
+      break;
+    }
+  }
+
+  const inputParamVal = parameterDictionary[inputHumidParam].convertingFunc(
+    parameterDictionary[inputHumidParam].inputBox.value,
+    parameterDictionary[inputHumidParam].unitCombo.value
+  );
+
+  const calcResults = calcHumidParams(Tin, Pin, inputHumidParam, inputParamVal);
+
+  for (itemKey of sectionDict["Humidity"]) {
+    if (!parameterDictionary[itemKey].radioButton.checked) {
+      const dictOutput = parameterDictionary[itemKey];
+      const valOutput = calcResults[itemKey];
+      dictOutput.inputBox.value = dictOutput
+        .convertingFunc(
+          valOutput,
+          dictOutput.fromUnit,
+          dictOutput.unitCombo.value
+        )
+        .toFixed(dictOutput.inputDigints.value);
+    }
+  }
+}
+
+function calcHumidParams(Tin, Pin, inputHumidParam, inputParamVal) {
+  // Calculations:
+  const Pg = waterPartPreseRange.max;
+  let Pv;
+  switch (inputHumidParam) {
+    case "Relative Humidity":
+      Pv = inputParamVal * Pg;
+      break;
+    case "Humidity Ratio":
+      Pv =
+        ((inputParamVal / 1000) * Pin) /
+        (inputParamVal / 1000 + MW_water / MW_dryAir);
+
+      break;
+    case "Absolute Humidity":
+      Pv = (1000 * (inputParamVal * Ru * (Tin + 273.15))) / MW_water;
+      break;
+    case "Dew Point Temperature":
+      Pv = waterSatPressure(inputParamVal);
+      break;
+    case "Wet Bulb Temperature":
+      const humidityRatio = calcHumidityRatioByTwb(inputParamVal, Tin, Pin);
+      Pv =
+        ((humidityRatio / 1000) * Pin) /
+        (humidityRatio / 1000 + MW_water / MW_dryAir);
+
+      break;
+    case "Water Partial Pressure":
+      Pv = inputParamVal;
+      break;
+    case "Water Mole Fraction":
+      Pv = inputParamVal * Pin;
+      break;
+    case "Water Mass Fraction":
+      const waterMoleFraction =
+        (inputParamVal * MW_dryAir) /
+        (MW_water + inputParamVal * (MW_dryAir - MW_water));
+      Pv = waterMoleFraction * Pin;
+      break;
+    default:
+      console.log("Invalid inputHumidParam value");
+      break;
+  }
+  //----------------------------------------------------------
+
+  const phi = Pv / Pg;
+  const omega = (1000 * ((MW_water / MW_dryAir) * Pv)) / (Pin - Pv);
+  const AH = (0.001 * (Pv * MW_water)) / (Ru * (Tin + 273.15));
+  const Tdp = waterSatTemperature(Pv);
+  const Twb = calcTwbByHumidityRatio(omega, Tin, Pin);
+  const waterMoleFraction = Pv / Pin;
+  const waterMassFraction =
+    (waterMoleFraction * MW_water) /
+    (MW_dryAir + waterMoleFraction * (MW_water - MW_dryAir));
+
   return {
+    "Relative Humidity": phi,
+    "Humidity Ratio": omega,
+    "Absolute Humidity": AH,
+    "Dew Point Temperature": Tdp,
+    "Wet Bulb Temperature": Twb,
+    "Water Partial Pressure": Pv,
+    "Water Mole Fraction": waterMoleFraction,
+    "Water Mass Fraction": waterMassFraction,
+  };
+}
+
+function calcHumidityRange() {
+  const Pin = parameterDictionary["Pressure"].convertingFunc(
+    parameterDictionary["Pressure"].inputBox.value,
+    parameterDictionary["Pressure"].unitCombo.value
+  );
+
+  const Tin = parameterDictionary["Temperature"].convertingFunc(
+    parameterDictionary["Temperature"].inputBox.value,
+    parameterDictionary["Temperature"].unitCombo.value
+  );
+
+  const Pg = waterSatPressure(Tin);
+  const absHumidMax = (0.001 * (Pg * MW_water)) / (Ru * (Tin + 273.15));
+  const HumidRatioMax = 1000 * (MW_water / MW_dryAir) * (Pg / (Pin - Pg));
+  const moleFracH2OMax = Pg / Pin;
+  const MW_satAir =
+    moleFracH2OMax * MW_water + (1 - moleFracH2OMax) * MW_dryAir;
+  const massFracH2oMax = (moleFracH2OMax * MW_water) / MW_satAir;
+
+  const TwbMin = calcTwbByHumidityRatio(0, Tin, Pin);
+
+  return {
+    Tin: Tin,
+    TwbMin: TwbMin,
     Pg: Pg,
     absHumidMax: absHumidMax,
     HumidRatioMax: HumidRatioMax,
@@ -812,9 +876,41 @@ function humidityRanges(Pin, Tin) {
 
 function calcHumidityRatioByTwb(Twb, Tdb, Pamb) {
   const Pg = waterSatPressure(Twb);
-  HumidityRatioSat = (MW_water / MW_dryAir) * Pg * (Pamb - Pg);
-  return (
-    (HumidityRatioSat * (2501 - 2.381 * Twb) - 1.006 * (Tdb - Twb)) /
-    (2501 + 1.805 * Tdb - 4.186 * Twb)
-  );
+  const HumidRatioSat = (MW_water / MW_dryAir) * (Pg / (Pamb - Pg));
+
+  let HumidityRatio =
+    (HumidRatioSat * (2501 - 2.381 * Twb) - 1.006 * (Tdb - Twb)) /
+    (2501 + 1.805 * Tdb - 4.186 * Twb);
+
+  return 1000 * HumidityRatio;
+}
+
+function calcTwbByHumidityRatio(omega, Tdb, Pamb) {
+  const itrMax = 1000;
+  const errOK = 1e-6;
+
+  let Tmin = -100;
+  let Tmax = Tdb;
+  let Tgoal;
+
+  let itr = 0;
+
+  do {
+    let w_b = calcHumidityRatioByTwb(Tmin, Tdb, Pamb);
+    Tgoal = 0.5 * (Tmin + Tmax);
+    let w_g = calcHumidityRatioByTwb(Tgoal, Tdb, Pamb);
+
+    let e_b = w_b - omega;
+    let e_g = w_g - omega;
+
+    if (e_g * e_b < 0) {
+      Tmax = Tgoal;
+    } else {
+      Tmin = Tgoal;
+    }
+
+    itr++;
+  } while (itr < itrMax && Tmax - Tmin > errOK);
+
+  return Tgoal;
 }
