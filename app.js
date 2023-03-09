@@ -423,7 +423,7 @@ function handleCheckBoxes(callingItemKey) {
           inputbox.removeAttribute("readonly");
           inputbox.style.backgroundColor = "yellow";
         } else {
-          inputbox.style.backgroundColor = "skyblue";
+          inputbox.style.backgroundColor = "lightgrey";
           inputbox.setAttribute("readonly", true);
         }
         inputbox = parameterDictionary[callingItemKey].inputBox;
@@ -447,22 +447,25 @@ function addOneElementRow(parentSection, dictKey) {
   radioInput.setAttribute("name", "alt-" + parentSection);
   radioInput.setAttribute("value", dictKey);
 
-  // Create the label for barometric pressure
+  // Create the label for value
   const label = document.createElement("label");
   label.setAttribute("for", dictKey + "-units");
-  label.textContent = dictKey + ":";
+  label.textContent = dictKey;
+  label.style.width = dictKey === "Temperature" ? `${188}px` : `${160}px`;
 
-  // Create the input element for pressure
+  // Create the input element for value
   const input = document.createElement("input");
   input.setAttribute("id", dictKey + "-input");
   input.setAttribute("type", "number");
   input.setAttribute("step", "1");
   input.setAttribute("value", "");
+  input.style.width = `${100}px`;
 
   // Create the select element for units
   const select = document.createElement("select");
   select.setAttribute("id", dictKey + "-units");
   select.setAttribute("name", dictKey + "-units");
+  select.style.width = `${150}px`;
 
   const options = parameterDictionary[dictKey].units;
 
@@ -477,19 +480,26 @@ function addOneElementRow(parentSection, dictKey) {
   const minSpan = document.createElement("span");
   minSpan.setAttribute("class", "range-label");
   minSpan.innerHTML = "&nbsp;Min:&nbsp;";
+  minSpan.style.backgroundColor = "skyblue";
   const maxSpan = document.createElement("span");
   maxSpan.setAttribute("class", "range-label");
   maxSpan.innerHTML = "&nbsp;Max:&nbsp;";
+  maxSpan.style.backgroundColor = "orange";
 
   // Create the labels for min and max values
   const minLabel = document.createElement("label");
   minLabel.setAttribute("class", "range-" + dictKey + "Min");
   minLabel.setAttribute("id", "range-" + dictKey + "Min");
   minLabel.textContent = parameterDictionary[dictKey].objRange.min;
+  minLabel.style.width = `${100}px`;
+  minLabel.style.backgroundColor = "skyblue";
+
   const maxLabel = document.createElement("label");
   maxLabel.setAttribute("class", "range-" + dictKey + "Max");
   maxLabel.setAttribute("id", "range-" + dictKey + "Max");
   maxLabel.textContent = parameterDictionary[dictKey].objRange.max;
+  maxLabel.style.width = `${100}px`;
+  maxLabel.style.backgroundColor = "orange";
 
   // Create the label for digits
   const labelDig = document.createElement("label");

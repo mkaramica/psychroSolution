@@ -14,7 +14,7 @@
 .HumidityContainer {
   border: 2px solid #ccc;
   border-radius: 10px;
-  padding: 10px;
+  padding: 5px;
   margin: 10px;
 }
 
@@ -31,7 +31,7 @@
 .input-row input[type="number"] {
   margin-right: 10px;
   margin-left: 10px;
-  padding: 5px;
+  padding: 3px;
   border: 1px solid #ccc;
   border-radius: 5px;
   background-color: yellow;
@@ -42,7 +42,7 @@
 }
 
 .input-row select {
-  padding: 5px;
+  padding: 3px;
   border: 1px solid #ccc;
   border-radius: 5px;
 }
